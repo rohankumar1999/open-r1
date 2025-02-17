@@ -57,6 +57,7 @@ from trl import (
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
+    LoraConfig,
 )
 
 
@@ -142,7 +143,15 @@ def main(script_args, training_args, model_args):
         train_dataset=dataset[script_args.dataset_train_split],
         eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=tokenizer,
-        peft_config=get_peft_config(model_args),
+        peft_config=LoraConfig(
+            r=4,
+            lora_alpha=16,
+            target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+            lora_dropout=0.1,
+            inference_mode=False,
+            bias="none",
+            task_type="CAUSAL_LM",
+        ),
         callbacks=get_callbacks(training_args, model_args),
     )
 
