@@ -57,7 +57,6 @@ from trl import (
     get_kbit_device_map,
     get_peft_config,
     get_quantization_config,
-    LoraConfig,
 )
 
 from peft import LoraConfig
