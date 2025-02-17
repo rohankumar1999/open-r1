@@ -60,6 +60,8 @@ from trl import (
     LoraConfig,
 )
 
+from peft import LoraConfig
+
 
 logger = logging.getLogger(__name__)
 
