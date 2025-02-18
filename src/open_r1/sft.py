@@ -152,6 +152,7 @@ def main(script_args, training_args, model_args):
             inference_mode=False,
             bias="none",
             task_type="CAUSAL_LM",
+            use_dora=True
         ),
         callbacks=get_callbacks(training_args, model_args),
     )
