@@ -1,7 +1,7 @@
 # Model arguments
 model_name_or_path: rkumar1999/Llama-3.1-8B-Instruct-Open-R1-Distill
 model_revision: main
-torch_dtype: bfloat16
+torch_dtype: half
 attn_implementation: flash_attention_2
 
 # Data training arguments
