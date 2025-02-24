@@ -1,7 +1,7 @@
 # Model arguments
 model_name_or_path: rkumar1999/Llama-3.1-8B-Instruct-Open-R1-Distill
 model_revision: main
-torch_dtype: half
+torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 
 # Data training arguments
@@ -15,7 +15,7 @@ num_processes: 1
 bf16: true
 use_vllm: true
 vllm_device: auto
-vllm_gpu_memory_utilization: 0.5
+vllm_gpu_memory_utilization: 0.6
 do_eval: true
 eval_strategy: steps
 eval_steps: 100
