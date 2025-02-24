@@ -194,6 +194,14 @@ def main(script_args, training_args, model_args):
     )
     training_args.model_init_kwargs = model_kwargs
 
+    # Check if the test split exists, otherwise create one from the train split.
+    if script_args.dataset_test_split not in dataset:
+        # Create an 80/20 train/test split from the training data.
+        split_dataset = dataset[script_args.dataset_train_split].train_test_split(test_size=0.2)
+        # Update the dataset dict with the new splits.
+        dataset[script_args.dataset_train_split] = split_dataset["train"]
+        dataset[script_args.dataset_test_split] = split_dataset["test"]
+
     #############################
     # Initialize the GRPO trainer
     #############################
