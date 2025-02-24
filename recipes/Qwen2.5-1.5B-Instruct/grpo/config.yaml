@@ -9,7 +9,7 @@ dataset_name: rkumar1999/numina-deepseek-r1-qwen-7b-1000
 dataset_configs:
 - all
 # Num processes is less by 1 as vLLM is using 1 GPU
-num_processes: 2
+num_processes: 1
 
 # GRPO trainer config
 bf16: true
