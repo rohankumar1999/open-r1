@@ -22,6 +22,7 @@ import torch
 import transformers
 from datasets import load_dataset
 from transformers import set_seed
+from transformers import BitsAndBytesConfig
 from transformers.trainer_utils import get_last_checkpoint
 
 from open_r1.configs import GRPOConfig
@@ -185,12 +186,20 @@ def main(script_args, training_args, model_args):
     torch_dtype = (
         model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     )
+
+    quant_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4"  # or "fp4"
+    )
     model_kwargs = dict(
         revision=model_args.model_revision,
         trust_remote_code=model_args.trust_remote_code,
         attn_implementation=model_args.attn_implementation,
         torch_dtype=torch_dtype,
         use_cache=False if training_args.gradient_checkpointing else True,
+        quantization_config=quant_config
     )
     training_args.model_init_kwargs = model_kwargs
 
