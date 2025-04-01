@@ -41,6 +41,20 @@ from peft import LoraConfig
 
 logger = logging.getLogger(__name__)
 
+from transformers import AutoTokenizer
+_original_from_pretrained = AutoTokenizer.from_pretrained
+
+def patched_from_pretrained(*args, **kwargs):
+    tokenizer = _original_from_pretrained(*args, **kwargs)
+    if tokenizer.pad_token is None:
+        # Option 1: Use the EOS token as the pad token
+        tokenizer.pad_token = tokenizer.eos_token
+        # Option 2: Alternatively, add a new pad token:
+        # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    return tokenizer
+
+# Monkey-patch AutoTokenizer.from_pretrained
+AutoTokenizer.from_pretrained = patched_from_pretrained
 
 @dataclass
 class GRPOScriptArguments(ScriptArguments):
@@ -98,15 +112,6 @@ class GRPOScriptArguments(ScriptArguments):
         metadata={"help": "Maximum (negative) penalty for for repetition penalty reward"},
     )
 
-
-SYSTEM_PROMPT = (
-    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
-    "first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning "
-    "process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., "
-    "<think> reasoning process here </think><answer> answer here </answer>"
-)
-
-
 def main(script_args, training_args, model_args):
     # Set seed for reproducibility
     set_seed(training_args.seed)
@@ -147,7 +152,22 @@ def main(script_args, training_args, model_args):
 
     # Load the dataset
     dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    dataset[script_args.dataset_train_split] = dataset[script_args.dataset_train_split].select(range(500))
 
+    # Format into conversation
+    def make_conversation(example):
+        prompt = []
+
+        if training_args.system_prompt is not None:
+            prompt.append({"role": "system", "content": training_args.system_prompt})
+
+        prompt.append({"role": "user", "content": example["problem"]})
+        return {"prompt": prompt}
+
+    dataset = dataset.map(make_conversation)
+    for split in dataset:
+        if "messages" in dataset[split].column_names:
+            dataset[split] = dataset[split].remove_columns("messages")
     # Get reward functions
     REWARD_FUNCS_REGISTRY = {
         "accuracy": accuracy_reward,
@@ -168,19 +188,10 @@ def main(script_args, training_args, model_args):
     }
     reward_funcs = [REWARD_FUNCS_REGISTRY[func] for func in script_args.reward_funcs]
 
-    # Format into conversation
-    def make_conversation(example):
-        return {
-            "prompt": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": example["problem"]},
-            ],
-        }
-
-    dataset = dataset.map(make_conversation)
-    for split in dataset:
-        if "messages" in dataset[split].column_names:
-            dataset[split] = dataset[split].remove_columns("messages")
+    
+    # for split in dataset:
+    #     if "messages" in dataset[split].column_names:
+    #         dataset[split] = dataset[split].remove_columns("messages")
 
     logger.info("*** Initializing model kwargs ***")
     torch_dtype = (
@@ -230,7 +241,7 @@ def main(script_args, training_args, model_args):
             task_type="CAUSAL_LM",
             use_dora=True
         ),
-        callbacks=get_callbacks(training_args, model_args),
+        callbacks=get_callbacks(training_args, model_args)
     )
 
     ###############
